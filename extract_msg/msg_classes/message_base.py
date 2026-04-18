@@ -25,6 +25,7 @@ import RTFDE.exceptions
 
 from email import policy
 from email.charset import Charset, QP
+from email.header import decode_header as _decode_header, Header as _Header
 from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -55,6 +56,43 @@ from ..utils import (
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+_RFC2047_WORD = re.compile(r'=\?[^?]+\?[bBqQ]\?[^?]*\?=')
+
+
+def _sanitize_header(value: str) -> str:
+    """
+    Prepare a header value from a compat32-parsed Message for safe assignment
+    to an EmailMessage.
+
+    RFC 2047 encoded words that use unknown or invalid charsets are re-encoded
+    as UTF-8 so that EmailMessage.as_bytes() does not raise UnicodeEncodeError
+    when folding the header. Raw non-ASCII characters are also RFC 2047-encoded.
+    """
+    if '=?' in value:
+        def _fix_word(m: re.Match) -> str:
+            word = m.group(0)
+            try:
+                parts = _decode_header(word)
+                if len(parts) != 1 or not isinstance(parts[0][0], bytes):
+                    return word
+                btext, cs = parts[0]
+                try:
+                    text = btext.decode(cs or 'ascii')
+                except (UnicodeDecodeError, LookupError):
+                    text = btext.decode('latin-1', 'replace')
+                return str(_Header(text, charset='utf-8'))
+            except Exception:
+                return word
+
+        value = _RFC2047_WORD.sub(_fix_word, value)
+
+    try:
+        value.encode('ascii')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        value = str(_Header(value, charset='utf-8'))
+
+    return value
 
 
 class MessageBase(MSGFile):
@@ -171,14 +209,16 @@ class MessageBase(MSGFile):
         for key, value in self.header.items():
             if key.lower() == 'content-type':
                 continue
-            cleaned = value.replace('\r\n', '').replace('\n', '')
+            # RFC 5322 unfolding: replace CRLF/LF + whitespace with a single space.
+            cleaned = re.sub(r'\r?\n[ \t]', ' ', value)
+            cleaned = cleaned.replace('\r\n', '').replace('\n', '')
             lower = key.lower()
             if lower in seen:
                 seen[lower] = (seen[lower][0], seen[lower][1] + ', ' + cleaned)
             else:
                 seen[lower] = (key, cleaned)
         for _, (key, value) in seen.items():
-            ret[key] = value
+            ret[key] = _sanitize_header(value)
 
         ret['Content-Type'] = 'multipart/mixed'
 

@@ -68,6 +68,19 @@ class MessageTests(unittest.TestCase):
             self.assertIn('alice@example.com', to_header)
             self.assertIn('carol@example.com', to_header)
 
+    def testUnicodeHeaderAsEmailMessage(self):
+        """
+        Tests that a message whose To header mixes plain and RFC 2047-encoded
+        display names (using a charset with invalid byte sequences) can be
+        converted to EML bytes without a UnicodeEncodeError. This crashes on
+        Python 3.13 without the fix.
+        """
+        with openMsg(TEST_FILE_DIR / 'unicode-header.msg') as msg:
+            em = msg.asEmailMessage()
+            self.assertIsInstance(em, EmailMessage)
+            raw = em.as_bytes()
+            self.assertIn(b'alice@example.com', raw)
+
     def testMultiToAsEmailMessage(self):
         """
         Tests that a message with multiple To recipients converts to EML without error,
