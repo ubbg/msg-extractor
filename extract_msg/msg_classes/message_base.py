@@ -166,16 +166,18 @@ class MessageBase(MSGFile):
         ret = EmailMessage()
 
         # Merge duplicate keys (e.g. multiple TO entries) into one comma-separated value.
+        # Keyed by lowercased name to handle mixed casing (e.g. 'TO' vs 'To').
         seen = {}
         for key, value in self.header.items():
             if key.lower() == 'content-type':
                 continue
             cleaned = value.replace('\r\n', '').replace('\n', '')
-            if key in seen:
-                seen[key] += ', ' + cleaned
+            lower = key.lower()
+            if lower in seen:
+                seen[lower] = (seen[lower][0], seen[lower][1] + ', ' + cleaned)
             else:
-                seen[key] = cleaned
-        for key, value in seen.items():
+                seen[lower] = (key, cleaned)
+        for _, (key, value) in seen.items():
             ret[key] = value
 
         ret['Content-Type'] = 'multipart/mixed'

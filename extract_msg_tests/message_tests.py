@@ -37,6 +37,37 @@ class MessageTests(unittest.TestCase):
             cc_emails = [r.email.strip('\x00') for r in cc_recipients]
             self.assertIn('dave@example.com', cc_emails)
 
+    def testMultiToTo(self):
+        """
+        Tests parsing a message where To headers use mixed casing (e.g. 'To' vs 'TO').
+        """
+        with openMsg(TEST_FILE_DIR / 'multi-to-to.msg') as msg:
+            self.assertIsInstance(msg, Message)
+            self.assertTrue(msg.subject.startswith('Test: multiple To recipients'))
+
+            to_recipients = [r for r in msg.recipients if r.type == 1]
+            cc_recipients = [r for r in msg.recipients if r.type == 2]
+
+            self.assertGreaterEqual(len(to_recipients), 2)
+            self.assertGreaterEqual(len(cc_recipients), 1)
+
+            to_emails = [r.email.strip('\x00') for r in to_recipients]
+            self.assertIn('alice@example.com', to_emails)
+            self.assertIn('carol@example.com', to_emails)
+
+    def testMultiToToAsEmailMessage(self):
+        """
+        Tests EML conversion when To headers appear with mixed casing across recipients.
+        """
+        with openMsg(TEST_FILE_DIR / 'multi-to-to.msg') as msg:
+            em = msg.asEmailMessage()
+
+            self.assertIsInstance(em, EmailMessage)
+            self.assertEqual(sum(1 for k in em.keys() if k.lower() == 'to'), 1)
+            to_header = em['TO'] or em['To']
+            self.assertIn('alice@example.com', to_header)
+            self.assertIn('carol@example.com', to_header)
+
     def testMultiToAsEmailMessage(self):
         """
         Tests that a message with multiple To recipients converts to EML without error,
