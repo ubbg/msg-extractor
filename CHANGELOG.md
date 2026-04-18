@@ -1,4 +1,5 @@
 **v0.55.0**
+* [[TeamMsgExtractor #???](https://github.com/TeamMsgExtractor/msg-extractor/issues/???)] Fixed `MessageBase.asEmailMessage()` raising `ValueError` when a message has multiple `To` recipients.
 * [[TeamMsgExtractor #465](https://github.com/TeamMsgExtractor/msg-extractor/issues/465)] Added missing `msg.close()` to `openMsg()`. If the MSG file was actually just a plain OLE file, it would be left open.
 * Adjusted the default value of `maxNameLength` for `MessageBase.save()` to 40 instead of 256.
 * Adjusted exception handling for `MessageBase.save()` to properly report the reason a folder fails to be created.

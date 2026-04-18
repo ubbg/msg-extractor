@@ -165,10 +165,18 @@ class MessageBase(MSGFile):
         """
         ret = EmailMessage()
 
-        # Copy the headers.
+        # Merge duplicate keys (e.g. multiple TO entries) into one comma-separated value.
+        seen = {}
         for key, value in self.header.items():
-            if key.lower() != 'content-type':
-                ret[key] = value.replace('\r\n', '').replace('\n', '')
+            if key.lower() == 'content-type':
+                continue
+            cleaned = value.replace('\r\n', '').replace('\n', '')
+            if key in seen:
+                seen[key] += ', ' + cleaned
+            else:
+                seen[key] = cleaned
+        for key, value in seen.items():
+            ret[key] = value
 
         ret['Content-Type'] = 'multipart/mixed'
 
