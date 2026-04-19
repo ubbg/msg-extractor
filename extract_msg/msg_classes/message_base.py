@@ -69,39 +69,57 @@ _CHARSET_FALLBACKS: Dict[str, Tuple[str, ...]] = {
 }
 
 
+def _fix_encoded_word(m: re.Match) -> str:
+    """
+    Regex substitution callback: decode one RFC 2047 encoded word and
+    re-emit it as a valid UTF-8 encoded word.
+
+    If the declared charset fails (e.g. GB2312-labelled GBK bytes), charset
+    fallbacks from _CHARSET_FALLBACKS are tried before falling back to
+    latin-1 with replacement characters.
+    """
+    word = m.group(0)
+    try:
+        parts = _decode_header(word)
+        if len(parts) != 1 or not isinstance(parts[0][0], bytes):
+            return word
+        btext, cs = parts[0]
+        try:
+            text = btext.decode(cs or 'ascii')
+        except (UnicodeDecodeError, LookupError):
+            for fallback in _CHARSET_FALLBACKS.get((cs or '').lower(), ()):
+                try:
+                    text = btext.decode(fallback)
+                    break
+                except (UnicodeDecodeError, LookupError):
+                    continue
+            else:
+                text = btext.decode('latin-1', 'replace')
+        return str(_Header(text, charset='utf-8'))
+    except Exception:
+        return word
+
+
+def _preprocess_encoded_words(text: str) -> str:
+    """
+    Replace every RFC 2047 encoded word in *text* with a clean UTF-8
+    encoded word.  Safe to apply to an entire raw header block before
+    feeding it to the modern email policy parser.
+    """
+    return _RFC2047_WORD.sub(_fix_encoded_word, text)
+
+
 def _sanitize_header(value: str) -> str:
     """
     Prepare a header value from a compat32-parsed Message for safe assignment
-    to an EmailMessage.
+    to an EmailMessage (fallback path when no raw headerText is available).
 
-    RFC 2047 encoded words that use unknown or invalid charsets are re-encoded
-    as UTF-8 so that EmailMessage.as_bytes() does not raise UnicodeEncodeError
-    when folding the header. Raw non-ASCII characters are also RFC 2047-encoded.
+    RFC 2047 encoded words are re-encoded as UTF-8; raw non-ASCII characters
+    are also RFC 2047-encoded so that EmailMessage.as_bytes() never raises
+    UnicodeEncodeError.
     """
     if '=?' in value:
-        def _fix_word(m: re.Match) -> str:
-            word = m.group(0)
-            try:
-                parts = _decode_header(word)
-                if len(parts) != 1 or not isinstance(parts[0][0], bytes):
-                    return word
-                btext, cs = parts[0]
-                try:
-                    text = btext.decode(cs or 'ascii')
-                except (UnicodeDecodeError, LookupError):
-                    for fallback in _CHARSET_FALLBACKS.get((cs or '').lower(), ()):
-                        try:
-                            text = btext.decode(fallback)
-                            break
-                        except (UnicodeDecodeError, LookupError):
-                            continue
-                    else:
-                        text = btext.decode('latin-1', 'replace')
-                return str(_Header(text, charset='utf-8'))
-            except Exception:
-                return word
-
-        value = _RFC2047_WORD.sub(_fix_word, value)
+        value = _RFC2047_WORD.sub(_fix_encoded_word, value)
 
     try:
         value.encode('ascii')
@@ -219,22 +237,48 @@ class MessageBase(MSGFile):
         """
         ret = EmailMessage()
 
-        # Merge duplicate keys (e.g. multiple TO entries) into one comma-separated value.
-        # Keyed by lowercased name to handle mixed casing (e.g. 'TO' vs 'To').
-        seen = {}
-        for key, value in self.header.items():
+        # Prefer the raw transport-header block: pre-fix any malformed RFC 2047
+        # encoded words (e.g. GB2312-labelled GBK bytes), then parse with the
+        # modern policy so that RFC 5322 unfolding and RFC 2047 decoding are
+        # handled natively and the values arrive as clean Unicode strings.
+        # Fall back to the compat32-derived self.header when no raw text is
+        # stored (synthesised headers from MAPI properties).
+        _ADDRESS_HEADERS = frozenset({'to', 'cc', 'bcc', 'reply-to'})
+        if self.headerText:
+            raw = self.headerText
+            if raw.startswith('Microsoft Mail Internet Headers Version 2.0'):
+                raw = raw[43:].lstrip()
+            raw = _preprocess_encoded_words(raw)
+            source_items = list(HeaderParser(policy = policy.default).parsestr(raw).items())
+            sanitize = False
+        else:
+            source_items = list(self.header.items())
+            sanitize = True
+
+        # Address headers (To/CC/BCC/Reply-To) may appear once per recipient in
+        # the stored header block; merge them into a single comma-separated value.
+        # All other headers — including multi-valued trace headers like Received
+        # and Authentication-Results — are forwarded as-is; EmailMessage appends
+        # rather than replaces, so natural repetition is preserved correctly.
+        address_merged: Dict[str, Tuple[str, str]] = {}
+        for key, value in source_items:
             if key.lower() == 'content-type':
                 continue
-            # RFC 5322 unfolding: replace CRLF/LF + whitespace with a single space.
-            cleaned = re.sub(r'\r?\n[ \t]', ' ', value)
-            cleaned = cleaned.replace('\r\n', '').replace('\n', '')
+            if sanitize:
+                # compat32 values are folded and may contain raw encoded words.
+                value = re.sub(r'\r?\n[ \t]', ' ', value)
+                value = value.replace('\r\n', '').replace('\n', '')
+                value = _sanitize_header(value)
             lower = key.lower()
-            if lower in seen:
-                seen[lower] = (seen[lower][0], seen[lower][1] + ', ' + cleaned)
+            if lower in _ADDRESS_HEADERS:
+                if lower in address_merged:
+                    address_merged[lower] = (address_merged[lower][0], address_merged[lower][1] + ', ' + value)
+                else:
+                    address_merged[lower] = (key, value)
             else:
-                seen[lower] = (key, cleaned)
-        for _, (key, value) in seen.items():
-            ret[key] = _sanitize_header(value)
+                ret[key] = value
+        for _, (key, value) in address_merged.items():
+            ret[key] = value
 
         ret['Content-Type'] = 'multipart/mixed'
 
