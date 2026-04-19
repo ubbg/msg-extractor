@@ -59,6 +59,15 @@ logger.addHandler(logging.NullHandler())
 
 _RFC2047_WORD = re.compile(r'=\?[^?]+\?[bBqQ]\?[^?]*\?=')
 
+# Encodings to try when a declared charset fails, keyed by normalised charset name.
+# GBK is a strict superset of GB2312 and accepts the ASCII-range second bytes that
+# GB2312 rejects, so real-world GB2312-labelled headers often decode correctly as GBK.
+_CHARSET_FALLBACKS: Dict[str, Tuple[str, ...]] = {
+    'gb2312': ('gbk', 'cp936'),
+    'gb_2312': ('gbk', 'cp936'),
+    'gb_2312-80': ('gbk', 'cp936'),
+}
+
 
 def _sanitize_header(value: str) -> str:
     """
@@ -80,7 +89,14 @@ def _sanitize_header(value: str) -> str:
                 try:
                     text = btext.decode(cs or 'ascii')
                 except (UnicodeDecodeError, LookupError):
-                    text = btext.decode('latin-1', 'replace')
+                    for fallback in _CHARSET_FALLBACKS.get((cs or '').lower(), ()):
+                        try:
+                            text = btext.decode(fallback)
+                            break
+                        except (UnicodeDecodeError, LookupError):
+                            continue
+                    else:
+                        text = btext.decode('latin-1', 'replace')
                 return str(_Header(text, charset='utf-8'))
             except Exception:
                 return word

@@ -3,6 +3,7 @@ __all__ = [
 ]
 
 
+import base64
 import unittest
 from email.message import EmailMessage
 
@@ -80,6 +81,23 @@ class MessageTests(unittest.TestCase):
             self.assertIsInstance(em, EmailMessage)
             raw = em.as_bytes()
             self.assertIn(b'alice@example.com', raw)
+
+    def testGbkFallbackDisplayName(self):
+        """
+        Tests that RFC 2047 encoded words declared as GB2312 but containing
+        byte sequences only valid in GBK (a strict superset) are decoded
+        correctly rather than mangled via latin-1 fallback.
+
+        The encoded word =?gb2312?B?6pCzydXCKG1heGNoZW4p?= decodes to
+        '陳成章(maxchen)' in GBK. Without the fix, the display name is
+        garbled as latin-1.
+        """
+        with openMsg(TEST_FILE_DIR / 'unicode-header.msg') as msg:
+            em = msg.asEmailMessage()
+            raw = em.as_bytes()
+            # The correctly GBK-decoded name must appear RFC 2047-encoded as UTF-8.
+            # The Chinese characters 陳成章 base64-encoded in UTF-8 is the marker.
+            self.assertIn(base64.b64encode('陳成章'.encode('utf-8')), raw)
 
     def testMultiToAsEmailMessage(self):
         """
