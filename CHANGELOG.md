@@ -1,3 +1,6 @@
+**vNext**
+* [[TeamMsgExtractor #478](https://github.com/TeamMsgExtractor/msg-extractor/issues/478)] Expand allowable versions of `ebcdic` to include `2.x`. The 2.0 release is a pure technical release with no functional changes; it only drops support for Python 2 and 3.8. The lower bound is unchanged so installs on Python 3.8 will continue to resolve to `ebcdic 1.1.1`.
+
 **v0.55.0**
 * [[TeamMsgExtractor #465](https://github.com/TeamMsgExtractor/msg-extractor/issues/465)] Added missing `msg.close()` to `openMsg()`. If the MSG file was actually just a plain OLE file, it would be left open.
 * Adjusted the default value of `maxNameLength` for `MessageBase.save()` to 40 instead of 256.
