@@ -1178,7 +1178,7 @@ class MessageBase(MSGFile):
             # Convert the plain text body to html.
             logger.info('HTML body was not found, attempting to generate from plain text body.')
             correctedBody = html.escape(self.body).replace('\r', '').replace('\n', '<br />')
-            htmlBody = f'<html><body>{correctedBody}</body></head>'.encode('ascii', 'xmlcharrefreplace')
+            htmlBody = f'<html><body>{correctedBody}</body></html>'.encode('ascii', 'xmlcharrefreplace')
 
         if not htmlBody:
             logger.info('HTML body could not be found nor generated.')
