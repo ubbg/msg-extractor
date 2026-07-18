@@ -855,9 +855,9 @@ class MessageBase(MSGFile):
                     raise ValueError(f'Invalid filename found in self.filename: "{self.filename}"')
 
                 # Add the file name to the path.
-                path /= filename[:maxNameLength]
+                path /= filename[:maxNameLength].strip()
             else:
-                path /= self.defaultFolderName[:maxNameLength]
+                path /= self.defaultFolderName[:maxNameLength].strip()
 
             # Create the folders.
             if not _zip:

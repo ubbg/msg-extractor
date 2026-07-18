@@ -1,5 +1,7 @@
-**vNext**
+**v0.56.0**
 * [[TeamMsgExtractor #478](https://github.com/TeamMsgExtractor/msg-extractor/issues/478)] Expand allowable versions of `ebcdic` to include `2.x`. The 2.0 release is a pure technical release with no functional changes; it only drops support for Python 2 and 3.8. The lower bound is unchanged so installs on Python 3.8 will continue to resolve to `ebcdic 1.1.1`.
+* [[TeamMsgExtractor #469](https://github.com/TeamMsgExtractor/msg-extractor/issues/469)] Expanded `beautifulsoup` to allow for versions up to `5.*.*`. I was previously hesitant to do so because they sometimes do what seems like non backwards compatible changes in minor versions, but it looks like this should be fine.
+* [[TeamMsgExtractor #471](https://github.com/TeamMsgExtractor/msg-extractor/issues/471)] Added `.strip()` to file name determination to ensure that folders with trailing spaces would be corrected before being used.
 
 **v0.55.0**
 * [[TeamMsgExtractor #465](https://github.com/TeamMsgExtractor/msg-extractor/issues/465)] Added missing `msg.close()` to `openMsg()`. If the MSG file was actually just a plain OLE file, it would be left open.
