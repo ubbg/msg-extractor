@@ -3,9 +3,9 @@
 * [[TeamMsgExtractor #469](https://github.com/TeamMsgExtractor/msg-extractor/issues/469)] Expanded `beautifulsoup` to allow for versions up to `5.*.*`. I was previously hesitant to do so because they sometimes do what seems like non backwards compatible changes in minor versions, but it looks like this should be fine.
 * [[TeamMsgExtractor #471](https://github.com/TeamMsgExtractor/msg-extractor/issues/471)] Added `.strip()` to file name determination to ensure that folders with trailing spaces would be corrected before being used.
 * [[TeamMsgExtractor #481](https://github.com/TeamMsgExtractor/msg-extractor/issues/481)] Fixed a typo that caused an HTML body created from plain text to end with `</head>` instead of `</html>`.
+* [[TeamMsgExtractor #476](https://github.com/TeamMsgExtractor/msg-extractor/issues/476)] Fixed `MessageBase.asEmailMessage()` raising `ValueError` when a message has multiple `To` recipients.
 
 **v0.55.0**
-* [[TeamMsgExtractor #???](https://github.com/TeamMsgExtractor/msg-extractor/issues/???)] Fixed `MessageBase.asEmailMessage()` raising `ValueError` when a message has multiple `To` recipients.
 * [[TeamMsgExtractor #465](https://github.com/TeamMsgExtractor/msg-extractor/issues/465)] Added missing `msg.close()` to `openMsg()`. If the MSG file was actually just a plain OLE file, it would be left open.
 * Adjusted the default value of `maxNameLength` for `MessageBase.save()` to 40 instead of 256.
 * Adjusted exception handling for `MessageBase.save()` to properly report the reason a folder fails to be created.
