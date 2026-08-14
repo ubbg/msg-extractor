@@ -7,7 +7,7 @@ __all__ = [
 
 
 from functools import cached_property
-from typing import List, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from . import registerHandler
 from .custom_handler import CustomAttachmentHandler
