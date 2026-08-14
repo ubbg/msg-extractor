@@ -294,7 +294,7 @@ class MessageBase(MSGFile):
         if self.body:
             bodyParts.attach(MIMEText(self.body, 'plain', c))
         if self.htmlBody:
-            bodyParts.attach(MIMEText(str(bs4.BeautifulSoup(self.htmlBody)), 'html', c))
+            bodyParts.attach(MIMEText(str(bs4.BeautifulSoup(self.htmlBody, features = 'lxml')), 'html', c))
 
         # Process attachments.
         for att in self.attachments:
