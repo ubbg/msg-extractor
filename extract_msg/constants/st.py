@@ -93,7 +93,7 @@ ST_BE_UI8: Final[struct.Struct] = struct.Struct('>B')
 ST_BE_UI16: Final[struct.Struct] = struct.Struct('>H')
 ST_BE_UI32: Final[struct.Struct] = struct.Struct('>I')
 ST_BE_UI64: Final[struct.Struct] = struct.Struct('>Q')
-ST_BE_F32: Final[struct.Struct]  = struct.Struct('>f')
+ST_BE_F32: Final[struct.Struct] = struct.Struct('>f')
 ST_BE_F64: Final[struct.Struct] = struct.Struct('>d')
 # Structs that use the system byte order, where consistency on a single system
 # is all that matters. Mainly used for quick casts between signed and unsigned.
