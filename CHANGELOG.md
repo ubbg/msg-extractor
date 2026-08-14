@@ -1,3 +1,6 @@
+**v0.56.1**
+* [[TeamMsgExtractor #484](https://github.com/TeamMsgExtractor/msg-extractor/issues/484)] Corrected the way the HTML body is decoded in `MessageBase.asEmailMessage()` to prevent encoding errors.
+
 **v0.56.0**
 * [[TeamMsgExtractor #478](https://github.com/TeamMsgExtractor/msg-extractor/issues/478)] Expand allowable versions of `ebcdic` to include `2.x`. The 2.0 release is a pure technical release with no functional changes; it only drops support for Python 2 and 3.8. The lower bound is unchanged so installs on Python 3.8 will continue to resolve to `ebcdic 1.1.1`.
 * [[TeamMsgExtractor #469](https://github.com/TeamMsgExtractor/msg-extractor/issues/469)] Expanded `beautifulsoup` to allow for versions up to `5.*.*`. I was previously hesitant to do so because they sometimes do what seems like non backwards compatible changes in minor versions, but it looks like this should be fine.
