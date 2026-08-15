@@ -101,7 +101,7 @@ def main(argv: List[str] = sys.argv) -> None:
                     msg.saveAttachments(**kwargs)
                 else:
                     msg.save(**kwargs)
-        except Exception as e:
+        except Exception:
             try:
                 print(f'Error with file "{x}": {traceback.format_exc()}')
             except UnicodeEncodeError:
@@ -110,6 +110,7 @@ def main(argv: List[str] = sys.argv) -> None:
     # Close the zip file if we opened it.
     if createdZip:
         _zip.close()
+
 
 if __name__ == '__main__':
     main(sys.argv)
